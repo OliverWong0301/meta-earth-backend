@@ -1,11 +1,23 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from app.core.config import get_settings
+from app.core.database import client
+
+settings = get_settings()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Kết nối MongoDB khi server khởi động
+    print("✅ Kết nối MongoDB thành công")
+    yield
+    # Ngắt kết nối khi server tắt
+    client.close()
+    print("🛑 Đã ngắt kết nối MongoDB")
 
 app = FastAPI(
-    title="Meta Earth VN Backend",
-    description="Backend API cho dự án Meta Earth VN",
-    version="0.1.0",
+    title=settings.PROJECT_NAME,
+    lifespan=lifespan
 )
-
 
 @app.get("/")
 async def root():
