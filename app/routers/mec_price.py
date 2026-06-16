@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from app.models.mec_price import MECPrice
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/price", tags=["MEC Price"])
 
 class MECPriceUpdate(BaseModel):
-    price: float
+    price: float = Field(..., gt=0, description="Giá phải lớn hơn 0")
 
 @router.get("/mec")
 async def get_mec_price():
