@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
-    MONGO_URI: str = "mongodb://localhost:27017"
+    MONGO_URI: str
     DATABASE_NAME: str = "meta_earth_db"
     PROJECT_NAME: str = "Meta Earth VN Backend"
 
