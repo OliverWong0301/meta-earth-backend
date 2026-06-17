@@ -7,6 +7,7 @@ from app.routers.mec_price import router as mec_price_router
 from beanie import init_beanie
 from app.models.news import NewsItem
 from app.models.mec_price import MECPrice
+from fastapi.middleware.cors import CORSMiddleware
 
 settings = get_settings()
 
@@ -25,6 +26,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://meta-earth-vietnam.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(news_router)
