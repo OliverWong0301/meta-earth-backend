@@ -1,16 +1,19 @@
-from fastapi import APIRouter, HTTPException, status, Query, Body
+from fastapi import APIRouter, HTTPException, status, Query, Body, Depends
 from typing import List, Optional
 from datetime import datetime
 from app.models.registration import Registration
 from app.models.user import User
 from app.schemas.registration import RegistrationAdminView
-from app.core.security import hash_password, generate_temp_password
+from app.core.security import hash_password, generate_temp_password, get_current_admin
 
 router = APIRouter(prefix="/api/v1/admin", tags=["Admin"])
 
 
 @router.get("/registrations/pending", response_model=List[RegistrationAdminView])
-async def get_pending_registrations(limit: int = Query(50, le=200)):
+async def get_pending_registrations(
+    limit: int = Query(50, le=200),
+    current_admin=Depends(get_current_admin)
+):
     registrations = await Registration.find(
         {"status": "pending"}
     ).sort("-submitted_at").limit(limit).to_list()
@@ -18,7 +21,10 @@ async def get_pending_registrations(limit: int = Query(50, le=200)):
 
 
 @router.get("/registrations/{registration_id}", response_model=RegistrationAdminView)
-async def get_registration_detail(registration_id: str):
+async def get_registration_detail(
+    registration_id: str,
+    current_admin=Depends(get_current_admin)
+):
     registration = await Registration.get(registration_id)
     if not registration:
         raise HTTPException(status_code=404, detail="Không tìm thấy đơn đăng ký")
@@ -26,7 +32,10 @@ async def get_registration_detail(registration_id: str):
 
 
 @router.post("/registrations/{registration_id}/grant", status_code=status.HTTP_200_OK)
-async def grant_registration(registration_id: str):
+async def grant_registration(
+    registration_id: str,
+    current_admin=Depends(get_current_admin)
+):
     """Admin duyệt đơn đăng ký"""
     registration = await Registration.get(registration_id)
     if not registration:
@@ -60,15 +69,15 @@ async def grant_registration(registration_id: str):
         "message": "Đã duyệt thành công",
         "registration_id": str(registration.id),
         "user_id": str(user.id),
-        "temp_password": temp_password,          # Admin có thể gửi cho user
+        "temp_password": temp_password,
         "note": "Hãy gửi mật khẩu tạm này cho người dùng và yêu cầu đổi mật khẩu sau khi đăng nhập"
     }
-
 
 @router.post("/registrations/{registration_id}/decline", status_code=status.HTTP_200_OK)
 async def decline_registration(
     registration_id: str,
-    reason: Optional[str] = Body(None, embed=True)
+    reason: Optional[str] = Body(None, embed=True),
+    current_admin=Depends(get_current_admin)   # <-- Đã thêm dòng này
 ):
     """Admin từ chối đơn đăng ký"""
     registration = await Registration.get(registration_id)
@@ -87,7 +96,6 @@ async def decline_registration(
         "message": "Đã từ chối đơn đăng ký",
         "registration_id": str(registration.id)
     }
-
 
 @router.get("/users")
 async def get_all_users(limit: int = Query(50, le=200)):

@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import secrets
 import string
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 
 # ==================== PASSWORD ====================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -41,3 +44,42 @@ def verify_token(token: str):
         return payload
     except JWTError:
         return None
+
+
+# ==================== DEPENDENCIES ====================
+security = HTTPBearer()
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    
+    # Tự động cắt "Bearer " nếu có
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+    
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        email = payload.get("email")
+        role = payload.get("role")
+
+        if user_id is None or email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token không hợp lệ"
+            )
+        return {"user_id": user_id, "email": email, "role": role}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token không hợp lệ hoặc đã hết hạn"
+        )
+
+
+async def get_current_admin(current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bạn không có quyền truy cập chức năng này"
+        )
+    return current_user
