@@ -60,15 +60,25 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
-        email = payload.get("email")
-        role = payload.get("role")
 
-        if user_id is None or email is None:
+        if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token không hợp lệ"
             )
-        return {"user_id": user_id, "email": email, "role": role}
+
+        # === Query Beanie để lấy User document thật ===
+        from app.models.user import User
+        user = await User.get(user_id)   # Beanie Document
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User không tồn tại"
+            )
+
+        return user
+
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

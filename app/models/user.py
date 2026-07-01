@@ -7,7 +7,8 @@ from pydantic import EmailStr, Field
 class User(Document):
     email: EmailStr
     password: str
-    wallet_address: str
+    full_name: Optional[str] = None          # ← Thêm dòng này
+    wallet_address: Optional[str] = None     # ← Đổi thành Optional cho dễ dùng
     mepass_user_id: Optional[str] = None
     status: Literal["active", "suspended"] = "active"
     role: Literal["user", "admin"] = "user"
